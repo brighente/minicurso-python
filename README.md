@@ -49,7 +49,7 @@ A pasta `etapas/` contém o desenvolvimento incremental apresentado durante o mi
 
 ```bash
 git clone <URL_DO_REPOSITORIO>
-cd detector-maos
+cd minicurso-python
 ```
 
 ### Crie um ambiente virtual
@@ -130,7 +130,6 @@ Algumas evoluções possíveis para o projeto:
 - Reconhecimento de gestos personalizados.
 - Contagem de números até 10 utilizando ambas as mãos.
 - Interface gráfica mais elaborada.
-- Captura de fotos ou vídeos.
 
 ## Licença
 

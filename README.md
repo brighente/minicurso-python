@@ -19,30 +19,6 @@ O funcionamento da aplicação pode ser resumido em quatro etapas:
 3. Comparação das coordenadas dos dedos para identificar quais estão levantados.
 4. Exibição do número detectado sobre a imagem da câmera.
 
-## Estrutura do projeto
-
-```text
-.
-├── etapas/
-│   ├── etapa1.py
-│   ├── etapa2.py
-│   ├── etapa3.py
-│   └── etapa4.py
-├── codigo_final.py
-├── requirements.txt
-└── README.md
-```
-
-A pasta `etapas/` contém o desenvolvimento incremental apresentado durante o minicurso, permitindo acompanhar a evolução da aplicação desde a captura da câmera até o reconhecimento dos números.
-
-| Arquivo            | Descrição                                                                |
-| ------------------ | ------------------------------------------------------------------------ |
-| `etapas/etapa1.py` | Acessa a webcam e exibe a imagem na tela.                                |
-| `etapas/etapa2.py` | Detecta a mão e desenha os landmarks.                                    |
-| `etapas/etapa3.py` | Conta os dedos levantados utilizando os landmarks.                       |
-| `etapas/etapa4.py` | Exibe o número detectado diretamente na imagem da câmera.                |
-| `codigo_final.py`  | Versão final da aplicação, reunindo todas as etapas em um único arquivo. |
-
 ## Preparando o ambiente
 
 ### Clone o repositório

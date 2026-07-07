@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Aplicado Sobre Análise de Imagens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  :root{
+    --bg-deep:#070a14;
+    --bg-panel:#0d1226;
+    --bg-panel-alt:#121a38;
+    --blue:#4f7cff;
+    --blue-soft:#7fa2ff;
+    --purple:#9b5cf6;
+    --purple-soft:#c19dfb;
+    --text:#eef1ff;
+    --text-muted:#8791b3;
+    --border:rgba(150,166,255,0.14);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    height:100%;
+    background:var(--bg-deep);
+    color:var(--text);
+    font-family:var(--sans);
+    overflow:hidden;
+  }
+
+  body{
+    position:relative;
+  }
+
+  /* ---------- Ambient signature background: node / landmark network ---------- */
+  #bg-canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    opacity:0.55;
+  }
+
+  .bg-grid{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background-image:
+      linear-gradient(rgba(120,140,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,140,255,0.05) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse at center, black 0%, transparent 75%);
+  }
+
+  .bg-glow{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background:
+      radial-gradient(1000px 600px at 15% 10%, rgba(79,124,255,0.16), transparent 60%),
+      radial-gradient(900px 700px at 90% 90%, rgba(155,92,246,0.16), transparent 60%);
+  }
+
+  /* ---------- Deck ---------- */
+  .deck{
+    position:relative;
+    z-index:1;
+    height:100vh;
+    width:100vw;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .slide{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:6vh 8vw 12vh;
+    opacity:0;
+    transform:translateY(24px) scale(0.99);
+    pointer-events:none;
+    transition:opacity 0.5s ease, transform 0.5s ease;
+    overflow-y:auto;
+  }
+
+  .slide.active{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    pointer-events:auto;
+  }
+
+  .slide-inner{
+    width:100%;
+    max-width:1080px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:28px;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--blue-soft);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .eyebrow::before{
+    content:"";
+    width:26px;
+    height:1px;
+    background:linear-gradient(90deg, var(--blue), var(--purple));
+  }
+
+  h1.title{
+    font-size:clamp(2rem, 4.4vw, 3.4rem);
+    font-weight:800;
+    letter-spacing:-0.02em;
+    line-height:1.12;
+    background:linear-gradient(120deg, #ffffff 20%, var(--blue-soft) 60%, var(--purple-soft) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  p.lead{
+    font-size:clamp(1.05rem, 1.6vw, 1.35rem);
+    color:var(--text-muted);
+    line-height:1.65;
+    max-width:800px;
+  }
+
+  .quote{
+    font-size:clamp(1.15rem, 1.9vw, 1.5rem);
+    font-weight:600;
+    line-height:1.55;
+    padding:26px 34px;
+    border-radius:16px;
+    border:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(79,124,255,0.08), rgba(155,92,246,0.06));
+    max-width:820px;
+    position:relative;
+  }
+  .quote::before{
+    content:"";
+    position:absolute;
+    left:0; top:14px; bottom:14px;
+    width:3px;
+    border-radius:3px;
+    background:linear-gradient(180deg, var(--blue), var(--purple));
+  }
+
+  /* ---------- Placeholder visuals ---------- */
+  /* Todas as imagens finais serão 1672 x 941px (proporção 16:9).
+     Os placeholders reservam exatamente essa proporção para que o
+     encaixe seja perfeito quando as imagens reais forem inseridas. */
+  .placeholder{
+    width:100%;
+    max-width:760px;
+    aspect-ratio:1672/941;
+    border:1.5px dashed rgba(150,166,255,0.35);
+    border-radius:18px;
+    background:linear-gradient(160deg, rgba(79,124,255,0.06), rgba(155,92,246,0.05));
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    color:var(--text-muted);
+    font-size:0.98rem;
+    overflow:hidden;
+  }
+  .placeholder .ph-icon{
+    width:42px; height:42px;
+    opacity:0.85;
+    flex-shrink:0;
+  }
+  .placeholder span{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    color:var(--blue-soft);
+    text-align:center;
+    line-height:1.5;
+  }
+
+  /* Variante usada dentro de colunas mais estreitas — mesma proporção 16:9 */
+  .placeholder.small{ max-width:100%; padding:16px; }
+  .placeholder.small .ph-icon{ width:32px; height:32px; }
+  .placeholder.small span{ font-size:0.78rem; }
+
+  /* ---------- Cards / grids ---------- */
+  .card-grid{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+    gap:16px;
+  }
+
+  .card{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:22px 18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    text-align:center;
+    transition:transform 0.25s ease, border-color 0.25s ease;
+  }
+  .card:hover{ transform:translateY(-4px); border-color:rgba(150,166,255,0.4); }
+
+  .card .icon{
+    width:38px; height:38px;
+    color:var(--blue-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:2rem;
+    line-height:1;
+  }
+  .card .icon path, .card .icon circle, .card .icon line{
+    stroke:currentColor;
+  }
+
+  .material-symbols-outlined{
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 500,
+      "GRAD" 0,
+      "opsz" 24;
+  }
+  .card .label{
+    font-size:0.98rem;
+    color:var(--text);
+    font-weight:500;
+  }
+
+  .vision-slide{
+    max-width:1680px;
+    gap:28px;
+  }
+
+  .vision-layout{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(760px, 1.35fr);
+    gap:72px;
+    align-items:stretch;
+  }
+
+  .vision-left{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+    text-align:left;
+    align-self:stretch;
+    justify-content:center;
+  }
+
+  .vision-left .lead{
+    max-width:none;
+    text-align:left;
+    font-size:clamp(1.18rem, 1.7vw, 1.55rem);
+    line-height:1.7;
+  }
+
+  .vision-card-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:18px;
+  }
+
+  .vision-card-grid .card{
+    min-height:132px;
+    padding:24px 20px;
+  }
+
+  .vision-card-grid .card.wide{
+    grid-column:1 / -1;
+  }
+
+  .vision-right{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .vision-placeholder{
+    width:100%;
+    max-width:none;
+    min-height:100%;
+    padding:22px;
+  }
+
+  .vision-placeholder img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    object-position:center;
+  }
+
+  @media (max-width:980px){
+    .vision-layout{
+      grid-template-columns:1fr;
+    }
+
+    .vision-left{
+      text-align:center;
+    }
+
+    .vision-left .lead{
+      text-align:center;
+    }
+
+    .vision-card-grid{
+      grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    }
+
+    .vision-placeholder{
+      max-width:760px;
+      min-height:auto;
+      padding:16px;
+    }
+  }
+
+  @media (max-width:640px){
+    .vision-card-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  /* ---------- Two-column layout ---------- */
+  .two-col{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+    text-align:left;
+  }
+  @media (max-width:800px){ .two-col{ grid-template-columns:1fr; } }
+
+  .col-panel{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:26px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .col-panel.blue{ border-top:3px solid var(--blue); }
+  .col-panel.purple{ border-top:3px solid var(--purple); }
+
+  .col-panel h3{
+    font-size:1.25rem;
+    letter-spacing:-0.01em;
+  }
+  .col-panel ul{
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .col-panel ul li{
+    font-size:1rem;
+    color:var(--text-muted);
+    padding-left:20px;
+    position:relative;
+  }
+  .col-panel ul li::before{
+    content:"";
+    position:absolute;
+    left:0; top:9px;
+    width:7px; height:7px;
+    border-radius:50%;
+    background:linear-gradient(135deg, var(--blue), var(--purple));
+  }
+
+  .tools-slide{
+    max-width:1320px;
+    gap:20px;
+  }
+
+  .tools-slide .lead{
+    max-width:760px;
+    font-size:clamp(1rem, 1.35vw, 1.18rem);
+  }
+
+  .tools-slide .two-col{
+    gap:18px;
+    align-items:stretch;
+  }
+
+  .tools-slide .col-panel{
+    padding:20px;
+    gap:12px;
+  }
+
+  .tools-slide .col-panel h3{
+    font-size:1.15rem;
+  }
+
+  .tools-slide .col-panel ul{
+    gap:6px;
+  }
+
+  .tools-slide .col-panel ul li{
+    font-size:0.97rem;
+  }
+
+  .tools-slide .placeholder.small{
+    width:100%;
+    max-width:none;
+    padding:12px;
+  }
+
+  .tools-slide .placeholder.small img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    object-position:center;
+  }
+
+  .tools-slide .quote{
+    max-width:760px;
+    font-size:clamp(1rem, 1.4vw, 1.2rem);
+    line-height:1.4;
+    padding:18px 24px;
+  }
+
+  /* ---------- List with points (coordinates) ---------- */
+  .coord-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    font-family:var(--mono);
+    font-size:1rem;
+    color:var(--blue-soft);
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px 26px;
+  }
+
+  .coord-slide{
+    max-width:1480px;
+    gap:22px;
+  }
+
+  .coord-layout{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0, 0.9fr) minmax(520px, 1.1fr);
+    gap:44px;
+    align-items:center;
+  }
+
+  .coord-left{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    text-align:left;
+  }
+
+  .coord-left .lead{
+    max-width:none;
+    text-align:left;
+    font-size:clamp(1.02rem, 1.35vw, 1.25rem);
+    line-height:1.58;
+  }
+
+  .coord-list.compact{
+    gap:8px;
+    padding:18px 22px;
+    font-size:0.96rem;
+  }
+
+  .coord-quote{
+    max-width:none;
+    font-size:clamp(1rem, 1.45vw, 1.22rem);
+    line-height:1.45;
+    padding:20px 24px 20px 28px;
+    text-align:left;
+  }
+
+  .coord-right{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  .coord-placeholder{
+    width:100%;
+    max-width:none;
+    padding:18px;
+  }
+
+  .coord-placeholder img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    object-position:center;
+  }
+
+  @media (max-width:980px){
+    .coord-layout{
+      grid-template-columns:1fr;
+      gap:24px;
+    }
+
+    .coord-left{
+      text-align:center;
+    }
+
+    .coord-left .lead,
+    .coord-quote{
+      text-align:center;
+    }
+  }
+
+  .landmarks-slide{
+    max-width:1520px;
+    gap:22px;
+  }
+
+  .landmarks-layout{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(520px, 1.05fr) minmax(0, 0.95fr);
+    gap:44px;
+    align-items:center;
+  }
+
+  .landmarks-left{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .landmarks-placeholder{
+    width:100%;
+    max-width:none;
+    padding:18px;
+  }
+
+  .landmarks-placeholder img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    object-position:center;
+  }
+
+  .landmarks-right{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    text-align:left;
+  }
+
+  .landmarks-right .lead{
+    max-width:none;
+    text-align:left;
+    font-size:clamp(1rem, 1.35vw, 1.22rem);
+    line-height:1.55;
+  }
+
+  .landmarks-card-grid{
+    grid-template-columns:1fr;
+    gap:14px;
+  }
+
+  .landmarks-card-grid .card{
+    min-height:104px;
+    padding:18px 18px;
+    align-items:flex-start;
+    text-align:left;
+  }
+
+  .landmarks-card-grid .card .icon{
+    width:auto;
+    height:auto;
+    font-size:1.85rem;
+  }
+
+  @media (max-width:980px){
+    .landmarks-layout{
+      grid-template-columns:1fr;
+      gap:24px;
+    }
+
+    .landmarks-right{
+      text-align:center;
+    }
+
+    .landmarks-right .lead,
+    .landmarks-card-grid .card{
+      text-align:center;
+    }
+
+    .landmarks-card-grid .card{
+      align-items:center;
+    }
+  }
+
+  .logic-slide{
+    max-width:1500px;
+    gap:22px;
+  }
+
+  .logic-layout{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0, 0.95fr) minmax(560px, 1.05fr);
+    gap:44px;
+    align-items:center;
+  }
+
+  .logic-left{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    text-align:left;
+  }
+
+  .logic-left .lead{
+    max-width:none;
+    text-align:left;
+    font-size:clamp(1rem, 1.32vw, 1.2rem);
+    line-height:1.58;
+  }
+
+  .logic-note{
+    max-width:none;
+    padding:20px 22px;
+    gap:10px;
+  }
+
+  .logic-note .lead{
+    font-size:clamp(0.98rem, 1.18vw, 1.08rem) !important;
+    line-height:1.5 !important;
+  }
+
+  .logic-quote{
+    max-width:none;
+    text-align:left;
+    font-size:clamp(1rem, 1.35vw, 1.18rem);
+    line-height:1.45;
+    padding:20px 24px 20px 28px;
+  }
+
+  .logic-right{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .logic-placeholder{
+    width:100%;
+    max-width:none;
+    padding:18px;
+  }
+
+  .logic-placeholder img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    object-position:center;
+  }
+
+  @media (max-width:980px){
+    .logic-layout{
+      grid-template-columns:1fr;
+      gap:24px;
+    }
+
+    .logic-left,
+    .logic-left .lead,
+    .logic-quote{
+      text-align:center;
+    }
+  }
+
+  .responsibilities-slide{
+    max-width:1440px;
+    gap:18px;
+  }
+
+  .responsibilities-slide .title{
+    line-height:1.06;
+  }
+
+  .responsibilities-grid{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:18px;
+    align-items:stretch;
+  }
+
+  .responsibilities-grid .col-panel{
+    padding:20px 20px 18px;
+    gap:10px;
+  }
+
+  .responsibilities-grid .col-panel h3{
+    font-size:1.12rem;
+  }
+
+  .responsibilities-grid .col-panel ul{
+    gap:6px;
+  }
+
+  .responsibilities-grid .col-panel ul li{
+    font-size:0.96rem;
+  }
+
+  .responsibilities-placeholder{
+    width:100%;
+    max-width:1120px;
+    padding:14px;
+  }
+
+  .responsibilities-placeholder img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:contain;
+    object-position:center;
+  }
+
+  .architecture-slide{
+    max-width:1480px;
+    gap:18px;
+  }
+
+  .architecture-slide .lead{
+    max-width:900px;
+    font-size:clamp(1rem, 1.28vw, 1.16rem);
+    line-height:1.58;
+  }
+
+  .architecture-slide .flow{
+    gap:10px;
+    max-width:1200px;
+  }
+
+  .architecture-slide .flow-step{
+    width:170px;
+    min-width:170px;
+    min-height:84px;
+    padding:14px 14px;
+    font-size:0.9rem;
+    justify-content:center;
+  }
+
+  .architecture-note{
+    max-width:980px;
+    font-size:clamp(1rem, 1.3vw, 1.16rem);
+    line-height:1.45;
+    padding:20px 24px 20px 28px;
+  }
+
+  @media (max-width:980px){
+    .responsibilities-grid{
+      grid-template-columns:1fr;
+    }
+
+    .responsibilities-placeholder{
+      max-width:760px;
+    }
+  }
+
+  /* ---------- Flowchart ---------- */
+  .flow{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+  }
+  .flow-step{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 18px;
+    font-size:0.95rem;
+    min-width:150px;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .flow-step .num{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--purple-soft);
+  }
+  .flow-arrow{
+    color:var(--text-muted);
+    font-size:1.3rem;
+  }
+
+  /* ---------- Timeline ---------- */
+  .timeline{
+    display:flex;
+    width:100%;
+    max-width:900px;
+    justify-content:space-between;
+    position:relative;
+    padding-top:10px;
+  }
+  .timeline::before{
+    content:"";
+    position:absolute;
+    top:24px; left:0; right:0;
+    height:2px;
+    background:linear-gradient(90deg, var(--blue), var(--purple));
+    opacity:0.4;
+  }
+  .tl-item{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    position:relative;
+  }
+  .tl-dot{
+    width:14px; height:14px;
+    border-radius:50%;
+    background:var(--bg-deep);
+    border:2px solid var(--blue-soft);
+    z-index:1;
+  }
+  .tl-item:nth-child(even) .tl-dot{ border-color:var(--purple-soft); }
+  .tl-label{
+    font-size:0.95rem;
+    color:var(--text-muted);
+    max-width:150px;
+  }
+
+  /* ---------- Cover slide ---------- */
+  .cover-slide{
+    background-image:url('imagem-capa.png');
+    background-size:cover;
+    background-position:center;
+  }
+  .cover-overlay{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    background:
+      linear-gradient(180deg, rgba(5,7,16,0.30) 0%, rgba(5,7,16,0.68) 55%, rgba(5,7,16,0.92) 100%);
+  }
+  .cover-slide .slide-inner{
+    position:relative;
+    z-index:1;
+  }
+
+  .cover{
+    gap:36px;
+  }
+  .cover .brand{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    letter-spacing:0.3em;
+    text-transform:uppercase;
+    color:var(--purple-soft);
+  }
+  .cover h1{
+    font-size:clamp(2.4rem, 6vw, 4.2rem);
+  }
+  .cover .subtitle{
+    font-size:clamp(1.1rem, 2vw, 1.5rem);
+    color:var(--text-muted);
+    font-weight:400;
+  }
+  .instructors{
+    display:flex;
+    gap:30px;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-top:10px;
+  }
+  .instructor{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    padding:18px 22px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:var(--bg-panel);
+    min-width:340px;
+    text-align:left;
+  }
+  .instructor-name{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:1rem;
+  }
+  .instructor-links{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .instructor-link{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.94rem;
+    color:var(--blue-soft);
+    text-decoration:none;
+    border-bottom:1px solid transparent;
+    transition:color 0.2s ease, border-color 0.2s ease;
+  }
+  .instructor-link .fa-brands{
+    font-size:0.98rem;
+    line-height:1;
+  }
+  .instructor-link:hover{
+    color:var(--text);
+    border-color:rgba(127,162,255,0.5);
+  }
+  .instructor .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:linear-gradient(135deg, var(--blue), var(--purple));
+  }
+
+  .cover-bg-ph{
+    margin-top:10px;
+    width:100%;
+    max-width:820px;
+  }
+
+  /* ---------- Nav controls ---------- */
+  .nav-bar{
+    position:fixed;
+    bottom:26px;
+    left:0; right:0;
+    z-index:5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:20px;
+  }
+
+  .nav-btn{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:0.95rem;
+    padding:12px 22px;
+    border-radius:999px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition:border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+  }
+  .nav-btn:hover{
+    border-color:rgba(150,166,255,0.5);
+    background:var(--bg-panel-alt);
+  }
+  .nav-btn:active{ transform:scale(0.96); }
+  .nav-btn:disabled{
+    opacity:0.35;
+    cursor:not-allowed;
+  }
+
+  .progress-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    min-width:160px;
+  }
+  .progress-label{
+    font-family:var(--mono);
+    font-size:0.82rem;
+    color:var(--text-muted);
+    letter-spacing:0.04em;
+  }
+  .progress-track{
+    width:100%;
+    height:4px;
+    border-radius:4px;
+    background:rgba(150,166,255,0.14);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--blue), var(--purple));
+    border-radius:4px;
+    transition:width 0.4s ease;
+  }
+
+  @media (max-width:640px){
+    .nav-bar{ gap:10px; bottom:14px; }
+    .nav-btn{ padding:10px 14px; font-size:0.85rem; }
+    .progress-wrap{ min-width:110px; }
+    .slide{ padding:4vh 6vw 16vh; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 0 — CAPA -->
+  <section class="slide cover-slide">
+    <div class="cover-overlay"></div>
+    <div class="slide-inner cover">
+      <div class="brand">Minicurso · Visão Computacional</div>
+      <h1 class="title">Python Aplicado Sobre<br>Análise de Imagens</h1>
+      <p class="subtitle">Uma introdução prática à Visão Computacional com Python</p>
+
+      <div class="instructors">
+        <div class="instructor">
+          <div class="instructor-name"><span class="dot"></span> João Vitor Brighente de Souza</div>
+          <div class="instructor-links">
+            <a class="instructor-link" href="https://www.linkedin.com/in/joaovitorbrighente/" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-linkedin" aria-hidden="true"></i>
+              <span>/joaovitorbrighente</span>
+            </a>
+            <a class="instructor-link" href="https://github.com/brighente" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i>
+              <span>/brighente</span>
+            </a>
+          </div>
+        </div>
+        <div class="instructor">
+          <div class="instructor-name"><span class="dot"></span> Leonardo Barbosa Brehm</div>
+          <div class="instructor-links">
+            <a class="instructor-link" href="https://www.linkedin.com/in/leonardo-barbosa-brehm-757877247/" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-linkedin" aria-hidden="true"></i>
+              <span>/leonardo-barbosa-brehm-757877247</span>
+            </a>
+            <a class="instructor-link" href="https://github.com/uBreHm" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i>
+              <span>/uBreHm</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 1 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">01 · Visão geral</div>
+      <h1 class="title">O que vamos construir?</h1>
+      <p class="lead">Vamos construir uma aplicação capaz de reconhecer e identificar números feitos com a mão utilizando apenas uma webcam.</p>
+
+      <div class="placeholder">
+        <svg class="ph-icon" viewBox="0 0 48 48" fill="none"><rect x="6" y="12" width="28" height="20" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M34 20l8-5v18l-8-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <video id="introVideo" src="imagens/previewContadorDedosVideo.mp4" muted playsinline preload="metadata"></video>
+      </div>
+
+      <div class="quote">Como um computador consegue descobrir os números que fazemos com as mãos?</div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide">
+    <div class="slide-inner vision-slide">
+      <div class="eyebrow">02 · Fundamentos</div>
+      <h1 class="title">O que é Visão Computacional?</h1>
+      
+      <div class="vision-layout">
+        <div class="vision-left">
+          <p class="lead">Visão Computacional é a área da computação que permite computadores interpretarem imagens e vídeos. Diferente dos humanos, computadores não "enxergam" — eles analisam padrões presentes nas imagens.</p>
+
+          <div class="card-grid vision-card-grid">
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">face_retouching_natural</span>
+              <div class="label">Reconhecimento facial</div>
+            </div>
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">qr_code_2</span>
+              <div class="label">QR Code</div>
+            </div>
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">directions_car</span>
+              <div class="label">Carros autônomos</div>
+            </div>
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">photo_filter</span>
+              <div class="label">Filtros de Instagram</div>
+            </div>
+            <div class="card wide">
+              <span class="icon material-symbols-outlined" aria-hidden="true">credit_card</span>
+              <div class="label">Reconhecimento de placas</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vision-right">
+          <div class="placeholder vision-placeholder">
+            <img src="imagens/imagem-slide2.png" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide">
+    <div class="slide-inner tools-slide">
+      <div class="eyebrow">03 · Ferramentas</div>
+      <h1 class="title">OpenCV e MediaPipe</h1>
+      <p class="lead">Nosso projeto utiliza duas bibliotecas principais, e cada uma possui uma responsabilidade diferente.</p>
+
+      <div class="two-col">
+        <div class="col-panel blue">
+          <h3>OpenCV</h3>
+          <ul>
+            <li>Acessar a webcam e capturar imagens</li>
+            <li>Exibir vídeos</li>
+            <li>Desenhar textos, linhas e outros elementos gráficos</li>
+          </ul>
+          <div class="placeholder small"><img src="imagens/imagem-slide3.png" alt=""></div>
+        </div>
+        <div class="col-panel purple">
+          <h3>MediaPipe</h3>
+          <ul>
+            <li>Detectar a mão</li>
+            <li>Localizar os 21 landmarks</li>
+            <li>Fornecer as posições dos pontos para o nosso código</li>
+          </ul>
+          <div class="placeholder small"><img src="imagens/imagem-slide4.png" alt=""></div>
+        </div>
+      </div>
+
+      <div class="quote">OpenCV captura a imagem.<br>MediaPipe interpreta essa imagem.</div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 (Slide 5 do briefing) -->
+  <section class="slide">
+    <div class="slide-inner coord-slide">
+      <div class="eyebrow">04 · Coordenadas</div>
+      <h1 class="title">Como o computador vê uma mão?</h1>
+      
+      <div class="coord-layout">
+        <div class="coord-left">
+          <p class="lead">Para nós, existe uma mão. Para o computador, existe apenas uma lista de coordenadas.</p>
+
+          <div class="coord-list compact">
+            <div>Ponto 0 → x = 350, y = 420</div>
+            <div>Ponto 1 → x = 340, y = 390</div>
+            <div>Ponto 2 → x = 330, y = 360</div>
+          </div>
+
+          <p class="lead">Se movermos a mão para a direita, essas coordenadas mudam.</p>
+
+          <div class="quote coord-quote">O computador não pensa: "isso é um dedo". Ele pensa: "tenho 21 pontos, e cada um deles possui uma posição".</div>
+        </div>
+
+        <div class="coord-right">
+          <div class="placeholder coord-placeholder">
+            <img src="imagens/imagem-slide5.png" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 (Slide 6 do briefing) -->
+  <section class="slide">
+    <div class="slide-inner landmarks-slide">
+      <div class="eyebrow">05 · Landmarks</div>
+      <h1 class="title">O que são Landmarks?</h1>
+      
+      <div class="landmarks-layout">
+        <div class="landmarks-left">
+          <div class="placeholder landmarks-placeholder">
+            <img src="imagens/imagem-slide6.png" alt="">
+          </div>
+        </div>
+
+        <div class="landmarks-right">
+          <p class="lead">Landmarks são pontos de referência. O MediaPipe identifica exatamente 21 pontos na mão. Cada ponto representa uma região específica, como:</p>
+
+          <div class="card-grid landmarks-card-grid">
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">touch_app</span>
+              <div class="label">Ponta do indicador</div>
+            </div>
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">touch_app</span>
+              <div class="label">Ponta do polegar</div>
+            </div>
+            <div class="card">
+              <span class="icon material-symbols-outlined" aria-hidden="true">back_hand</span>
+              <div class="label">Pulso</div>
+            </div>
+          </div>
+
+          <p class="lead">O programa já fornece esses pontos para nós.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6 (Slide 7 do briefing) -->
+  <section class="slide">
+    <div class="slide-inner logic-slide">
+      <div class="eyebrow">06 · Lógica</div>
+      <h1 class="title">Como contar dedos?</h1>
+      
+      <div class="logic-layout">
+        <div class="logic-left">
+          <p class="lead">Como sabemos se um dedo está levantado? Se a ponta do dedo estiver acima da articulação, o dedo está levantado. Se estiver abaixo, o dedo não está levantado. Essa lógica vale para praticamente todos os dedos.</p>
+
+          <div class="col-panel blue logic-note" style="text-align:left;">
+            <h3>Observação</h3>
+            <p class="lead" style="text-align:left; max-width:100%;">O polegar é uma pequena exceção, porque aponta para o lado. Na programação veremos que fazemos uma comparação diferente apenas para ele.</p>
+          </div>
+
+          <div class="quote logic-quote">Vamos comparar duas coordenadas e decidir se o dedo está levantado ou não.</div>
+        </div>
+
+        <div class="logic-right">
+          <div class="placeholder logic-placeholder">
+            <img src="imagens/imagem-slide7.png" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7 (Slide 8 do briefing) -->
+  <section class="slide">
+    <div class="slide-inner architecture-slide">
+      <div class="eyebrow">07 · Arquitetura</div>
+      <h1 class="title">O que o nosso programa faz?</h1>
+      <p class="lead">Nosso programa segue uma sequência simples: captura a imagem, encontra a mão, interpreta os pontos e transforma isso em um número mostrado na tela.</p>
+
+      <div class="flow">
+        <div class="flow-step"><span class="num">01</span>Webcam</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num">02</span>OpenCV pega a imagem</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num">03</span>MediaPipe encontra a mão</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num">04</span>Recebemos os 21 pontos</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num">05</span>Comparamos a posição dos dedos</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num">06</span>Descobrimos o número</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num">07</span>Mostramos na tela</div>
+      </div>
+
+      <div class="quote architecture-note">Cada etapa depende da anterior: primeiro capturamos, depois detectamos, analisamos os landmarks e, por fim, exibimos o resultado para o usuário.</div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8 (Slide 9 do briefing) -->
+  <section class="slide">
+    <div class="slide-inner responsibilities-slide">
+      <div class="eyebrow">08 · Responsabilidades</div>
+      <h1 class="title">Separando as responsabilidades</h1>
+
+      <div class="responsibilities-grid">
+        <div class="col-panel blue">
+          <h3>OpenCV</h3>
+          <ul>
+            <li>Conversa com a câmera</li>
+            <li>Exibe a imagem</li>
+            <li>Desenha na tela</li>
+          </ul>
+        </div>
+        <div class="col-panel purple">
+          <h3>MediaPipe</h3>
+          <ul>
+            <li>Detecta a mão</li>
+            <li>Informa os 21 pontos</li>
+          </ul>
+        </div>
+        <div class="col-panel blue">
+          <h3>Nosso código</h3>
+          <ul>
+            <li>Analisa os pontos</li>
+            <li>Identifica polegar != outros dedos</li>
+            <li>Decide qual número está sendo mostrado</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SLIDE 9 (Slide 10 do briefing) -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">09 · Mão na massa</div>
+      <h1 class="title">Mão na massa</h1>
+      <p class="lead">Agora vamos construir o projeto em quatro etapas.</p>
+
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-label">Abrir a câmera</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-label">Detectar a mão</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-label">Contar os dedos</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-label">Mostrar o número</div></div>
+      </div>
+
+      <div class="quote">Cada etapa adiciona uma nova funcionalidade até chegarmos ao projeto final.</div>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn">&larr; Anterior</button>
+  <div class="progress-wrap">
+    <div class="progress-label" id="progressLabel">Slide 1 de 10</div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+  <button class="nav-btn" id="nextBtn">Próximo &rarr;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const progressLabel = document.getElementById('progressLabel');
+  const progressFill = document.getElementById('progressFill');
+  const introVideo = document.getElementById('introVideo');
+
+  function render(){
+    slides.forEach((s,i)=> s.classList.toggle('active', i===current));
+
+    if(introVideo){
+      if(current === 1){
+        introVideo.currentTime = 0;
+        introVideo.play().catch(()=>{});
+      } else {
+        introVideo.pause();
+        introVideo.currentTime = 0;
+      }
+    }
+
+    progressLabel.textContent = `Slide ${current+1} de ${total}`;
+    progressFill.style.width = `${((current+1)/total)*100}%`;
+    prevBtn.disabled = current===0;
+    nextBtn.disabled = current===total-1;
+  }
+
+  function goTo(i){
+    current = Math.max(0, Math.min(total-1, i));
+    render();
+  }
+
+  prevBtn.addEventListener('click', ()=> goTo(current-1));
+  nextBtn.addEventListener('click', ()=> goTo(current+1));
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight') goTo(current+1);
+    if(e.key === 'ArrowLeft') goTo(current-1);
+  });
+
+  render();
+
+  // ---------- Ambient node network background (signature element) ----------
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, nodes = [];
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const NODE_COUNT = Math.min(46, Math.floor((window.innerWidth*window.innerHeight)/28000));
+  for(let i=0;i<NODE_COUNT;i++){
+    nodes.push({
+      x: Math.random()*w,
+      y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.25,
+      vy: (Math.random()-0.5)*0.25
+    });
+  }
+
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    for(const n of nodes){
+      n.x += n.vx; n.y += n.vy;
+      if(n.x<0||n.x>w) n.vx*=-1;
+      if(n.y<0||n.y>h) n.vy*=-1;
+    }
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i], b=nodes[j];
+        const dx=a.x-b.x, dy=a.y-b.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<150){
+          ctx.strokeStyle = `rgba(140,150,255,${(1-dist/150)*0.12})`;
+          ctx.lineWidth=1;
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y);
+          ctx.lineTo(b.x,b.y);
+          ctx.stroke();
+        }
+      }
+    }
+    for(const n of nodes){
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,1.6,0,Math.PI*2);
+      ctx.fillStyle = 'rgba(170,180,255,0.35)';
+      ctx.fill();
+    }
+    requestAnimationFrame(step);
+  }
+  step();
+</script>
+
+</body>
+</html>

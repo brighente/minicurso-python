@@ -62,22 +62,6 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Executando o projeto
-
-Cada etapa pode ser executada individualmente.
-
-Exemplo:
-
-```bash
-python etapa1.py
-```
-
-ou
-
-```bash
-python etapa4.py
-```
-
 ## Dependências
 
 Arquivo `requirements.txt`:

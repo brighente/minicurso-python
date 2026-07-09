@@ -6,7 +6,7 @@ O projeto utiliza a webcam do computador para detectar uma mão, identificar os 
 
 ## Tecnologias utilizadas
 
-- Python 3.12+
+- Python 3.12.3
 - OpenCV
 - MediaPipe
 

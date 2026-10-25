@@ -869,6 +869,15 @@
   }
 
   /* ---------- Cover slide ---------- */
+  .banner-slide{
+    padding:0;
+    background:#070a14;
+  }
+  .banner-slide img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  }
   .cover-slide{
     background-image:url('imagem-capa.png');
     background-size:cover;
@@ -999,6 +1008,22 @@
     opacity:0.35;
     cursor:not-allowed;
   }
+  .nav-bar.banner-nav{
+    bottom:16px;
+    gap:10px;
+  }
+  .nav-bar.banner-nav .progress-wrap,
+  .nav-bar.banner-nav .nav-label{
+    display:none;
+  }
+  .nav-bar.banner-nav .nav-btn{
+    width:42px;
+    height:42px;
+    justify-content:center;
+    padding:0;
+    background:rgba(13,18,38,0.72);
+    font-size:1.35rem;
+  }
 
   .progress-wrap{
     display:flex;
@@ -1043,7 +1068,12 @@
 
 <div class="deck" id="deck">
 
-  <!-- SLIDE 0 — CAPA -->
+  <!-- SLIDE 0 — BANNER DE ABERTURA -->
+  <section class="slide banner-slide">
+    <img src="imagens/Banner - CRIO CONECTA - Dia 28 Unesc.jpg.jpeg" alt="Banner do CRIO CONECTA, dia 28, na Unesc">
+  </section>
+
+  <!-- SLIDE 1 — CAPA DO MINICURSO -->
   <section class="slide cover-slide">
     <div class="cover-overlay"></div>
     <div class="slide-inner cover">
@@ -1349,13 +1379,13 @@
 
 </div>
 
-<div class="nav-bar">
-  <button class="nav-btn" id="prevBtn">&larr; Anterior</button>
+<div class="nav-bar" id="navBar">
+  <button class="nav-btn" id="prevBtn" aria-label="Slide anterior"><span aria-hidden="true">&larr;</span><span class="nav-label">Anterior</span></button>
   <div class="progress-wrap">
     <div class="progress-label" id="progressLabel">Slide 1 de 10</div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
   </div>
-  <button class="nav-btn" id="nextBtn">Próximo &rarr;</button>
+  <button class="nav-btn" id="nextBtn" aria-label="Próximo slide"><span class="nav-label">Próximo</span><span aria-hidden="true">&rarr;</span></button>
 </div>
 
 <script>
@@ -1365,15 +1395,17 @@
 
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
+  const navBar = document.getElementById('navBar');
   const progressLabel = document.getElementById('progressLabel');
   const progressFill = document.getElementById('progressFill');
   const introVideo = document.getElementById('introVideo');
 
   function render(){
     slides.forEach((s,i)=> s.classList.toggle('active', i===current));
+    navBar.classList.toggle('banner-nav', current===0);
 
     if(introVideo){
-      if(current === 1){
+      if(current === 2){
         introVideo.currentTime = 0;
         introVideo.play().catch(()=>{});
       } else {
